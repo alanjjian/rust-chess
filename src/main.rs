@@ -121,7 +121,7 @@ impl fmt::Display for Board {
 struct GameState {
     in_progress: bool,
     turn: Color,
-    board: Board
+    board: Board,
 }
 
 impl GameState {
@@ -147,7 +147,9 @@ fn main() {
         let proposed_move = proposed_move.trim().split_whitespace();
 
         let first_pos = proposed_move.next();
-
+        // Dennis says it's 8 - for the ~rank~ number O_o
+        // H is 7, A is 0 im going to kms
+        // poggo
     }
     println!("{my_bussy}");
 }
