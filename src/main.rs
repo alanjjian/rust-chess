@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io;
 
 enum Color {
     // #idoseecoloractually
@@ -117,7 +118,36 @@ impl fmt::Display for Board {
     }
 }
 
+struct GameState {
+    in_progress: bool,
+    turn: Color,
+    board: Board
+}
+
+impl GameState {
+    fn init() -> GameState {
+        GameState {
+            in_progress: true,
+            turn: Wht,
+            board: Board::init(),
+        }
+    }
+}
+
 fn main() {
-    let my_bussy = Board::init();
+    let my_game = GameState::init();
+    while my_game.in_progress {
+        println!("{} to move:", my_game.turn);
+        let mut proposed_move = String::new();
+
+        io::stdin()
+            .read_line(&mut proposed_move)
+            .expect("Failed to read line");
+
+        let proposed_move = proposed_move.trim().split_whitespace();
+
+        let first_pos = proposed_move.next();
+
+    }
     println!("{my_bussy}");
 }
