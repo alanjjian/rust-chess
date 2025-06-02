@@ -1,3 +1,4 @@
+use std::char;
 use std::fmt;
 use std::io;
 
@@ -134,6 +135,28 @@ impl GameState {
     }
 }
 
+fn convert_coord(pos: Option<&str>) -> Option<(u32, u32)> {
+    // format is correct
+    match pos {
+        None => None,
+        Some(coord) => {
+            if coord.len() != 2 {
+                return None;
+            }
+            let mut coord_iter = coord.chars();
+            let x = coord_iter.next().unwrap();
+            let y = coord_iter.next().unwrap();
+            if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
+                let y = 8 - y.to_digit(10).unwrap();
+                let x = x as u32 - 'a' as u32;
+                return Some((y, x));
+            } else {
+                return None;
+            }
+        }
+    }
+}
+
 fn main() {
     let my_game = GameState::init();
     while my_game.in_progress {
@@ -144,12 +167,29 @@ fn main() {
             .read_line(&mut proposed_move)
             .expect("Failed to read line");
 
-        let proposed_move = proposed_move.trim().split_whitespace();
+        let mut proposed_move = proposed_move.trim().split_whitespace();
 
         let first_pos = proposed_move.next();
-        // Dennis says it's 8 - for the ~rank~ number O_o
-        // H is 7, A is 0 im going to kms
-        // poggo
+
+        let first_coord = match convert_coord(first_pos) {
+            None => {
+                println!("Invalid format: Use chess coordinates to describe position (i.e a6)");
+                continue;
+            }
+            Some(coord) => coord,
+        };
+
+        let second_pos = proposed_move.next();
+
+        let second_coord = match convert_coord(second_pos) {
+            None => {
+                println!("Invalid format: Use chess coordinates to describe position (i.e a6)");
+                continue;
+            }
+            Some(coord) => coord,
+        };
+
+        println!("{:#?}", first_coord);
+        println!("{:#?}", second_coord);
     }
-    println!("{my_bussy}");
 }
