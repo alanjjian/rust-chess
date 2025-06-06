@@ -1,4 +1,3 @@
-use std::char;
 use std::fmt;
 use std::io;
 
@@ -25,7 +24,7 @@ enum Piece {
     K(Color),
     Q(Color),
     P(Color),
-    E,
+    Empty,
 }
 use Piece::*;
 
@@ -38,7 +37,7 @@ impl fmt::Display for Piece {
             K(color) => write!(f, "K({color})"),
             Q(color) => write!(f, "Q({color})"),
             P(color) => write!(f, "P({color})"),
-            E => write!(f, "      "),
+            Empty => write!(f, "      "),
         }
     }
 }
@@ -70,10 +69,10 @@ impl Board {
                 P(Blk),
                 P(Blk),
             ],
-            [E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E],
-            [E, E, E, E, E, E, E, E],
+            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
+            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
+            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
+            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
             [
                 P(Wht),
                 P(Wht),
@@ -96,6 +95,14 @@ impl Board {
             ],
         ];
         Board { grid: grid }
+    }
+
+    fn is_legal_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
+        // What makes a legal move?
+        // Ideally, we would like to have a set of legal moves to consider.
+        // Where should we store it? When should we compute the set of legal moves?
+        let first_piece = self.grid[first_coord.0][first_coord.1];
+        
     }
 }
 
@@ -133,9 +140,21 @@ impl GameState {
             board: Board::init(),
         }
     }
+
+    fn move_piece(
+        self,
+        first_coord: (usize, usize),
+        second_coord: (usize, usize),
+    ) -> Result<(), String> {
+        // If the move is legal, make the move. Return an Option
+        if !self.board.is_legal_move(first_coord, second_coord) {
+            return Err("Illegal move; enter a legal move.".to_string());
+        }
+        Ok(())
+    }
 }
 
-fn convert_coord(pos: Option<&str>) -> Option<(u32, u32)> {
+fn convert_coord(pos: Option<&str>) -> Option<(usize, usize)> {
     // format is correct
     match pos {
         None => None,
@@ -147,8 +166,8 @@ fn convert_coord(pos: Option<&str>) -> Option<(u32, u32)> {
             let x = coord_iter.next().unwrap();
             let y = coord_iter.next().unwrap();
             if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
-                let y = 8 - y.to_digit(10).unwrap();
-                let x = x as u32 - 'a' as u32;
+                let y = 8 as usize - y.to_digit(10).unwrap() as usize;
+                let x = x as usize - 'a' as usize;
                 return Some((y, x));
             } else {
                 return None;
@@ -188,6 +207,8 @@ fn main() {
             }
             Some(coord) => coord,
         };
+
+        my_game.move_piece(first_coord, second_coord);
 
         println!("{:#?}", first_coord);
         println!("{:#?}", second_coord);
