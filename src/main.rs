@@ -1,5 +1,6 @@
 use std::fmt;
 use std::io;
+use std::abs;
 
 enum Color {
     // #idoseecoloractually
@@ -27,6 +28,33 @@ enum Piece {
     Empty,
 }
 use Piece::*;
+
+impl Piece {
+    fn can_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
+        let first_coord = (first_coord.0 as i32, first_coord.1 as i32);
+        let second_coord = (second_coord.0 as i32, second_coord.1 as i32);
+        match self {
+            R(c) => first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1,
+            N(c) => {
+                abs(first_coord.0 - second_coord.0) == 2 && abs(first_coord.1 - second_coord.1) == 1 ||
+                abs(first_coord.1 - second_coord.1) == 2 && abs(first_coord.0 - second_coord.0) == 1
+            },
+            B(c) => abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1),
+            K(c) => abs(first_coord.0 - second_coord.0) <= 1 && abs(first_coord.1 - second_coord.1) <= 1,
+            Q(c) => {
+                (first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1) || 
+                abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1)
+            },
+            P(c) => {
+                // TODO: fix this simple approximation
+                if c == Wht {
+                    first_coord.0 - second_coord.0 == 1 && first_coord.1 == second_coord.1
+                } else {
+                    first_coord.0 - second_coord.0 == -1 && first_coord.1 == second_coord.1
+                }
+            }
+    }
+}
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -96,14 +124,6 @@ impl Board {
         ];
         Board { grid: grid }
     }
-
-    fn is_legal_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
-        // What makes a legal move?
-        // Ideally, we would like to have a set of legal moves to consider.
-        // Where should we store it? When should we compute the set of legal moves?
-        let first_piece = self.grid[first_coord.0][first_coord.1];
-        
-    }
 }
 
 impl fmt::Display for Board {
@@ -147,11 +167,80 @@ impl GameState {
         second_coord: (usize, usize),
     ) -> Result<(), String> {
         // If the move is legal, make the move. Return an Option
-        if !self.board.is_legal_move(first_coord, second_coord) {
+        if !self.is_legal_move(first_coord, second_coord) {
             return Err("Illegal move; enter a legal move.".to_string());
         }
         Ok(())
     }
+
+    fn get_legal_moves(self, coord: (usize, usize)) -> Vec<(usize, usize)> {
+        // Given piece, return vector of legal moves
+        let piece = self.board.grid[first_coord.0][first_coord.1];
+        let mut legal_moves = Vec::new();
+
+        match piece {
+            Empty => Vec::new(),
+            R(c) => {
+                let mut curr_loc = coord;
+                for i in [(curr_loc.0 + 1)..8] {
+                    match self.board.grid[i][curr_loc.1] {
+                        Empty => legal_moves.append((i, curr_loc.1)),
+                        c => break,
+                        _ => {
+                            legal_moves.append((i, curr_loc.1));
+                            break
+                        }
+                    }
+                }
+                for i in [(curr_loc.0 - 1)..-1] {
+                    match self.board.grid[i][curr_loc.1] {
+                        Empty => legal_moves.append((i, curr_loc.1)),
+                        c => break,
+                        _ => {
+                            legal_moves.append((i, curr_loc.1));
+                            break
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+    fn is_legal_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
+        // What makes a legal move?
+        // Ideally, we would like to have a set of legal moves to consider.
+        // Where should we store it? When should we compute the set of legal moves?
+        let first_piece = self.board.grid[first_coord.0][first_coord.1];
+
+        let first_coord = (first_coord.0 as i32, first_coord.1 as i32);
+        let second_coord = (second_coord.0 as i32, second_coord.1 as i32);
+
+        match first_piece {
+            Empty => false,
+            R(c) => is_legal_move_rook() // first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1,
+            N(c) => {
+                abs(first_coord.0 - second_coord.0) == 2 && abs(first_coord.1 - second_coord.1) == 1 ||
+                abs(first_coord.1 - second_coord.1) == 2 && abs(first_coord.0 - second_coord.0) == 1
+            },
+            B(c) => abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1),
+            K(c) => abs(first_coord.0 - second_coord.0) <= 1 && abs(first_coord.1 - second_coord.1) <= 1,
+            Q(c) => {
+                (first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1) || 
+                abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1)
+            },
+            P(c) => {
+                // TODO: fix this simple approximation
+                if c == Wht {
+                    first_coord.0 - second_coord.0 == 1 && first_coord.1 == second_coord.1
+                } else {
+                    first_coord.0 - second_coord.0 == -1 && first_coord.1 == second_coord.1
+                }
+            }
+        }
+
+    }
+
+
 }
 
 fn convert_coord(pos: Option<&str>) -> Option<(usize, usize)> {
