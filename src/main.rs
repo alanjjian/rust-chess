@@ -1,6 +1,5 @@
 use std::fmt;
 use std::io;
-use std::abs;
 
 enum Color {
     // #idoseecoloractually
@@ -19,42 +18,15 @@ impl fmt::Display for Color {
 }
 
 enum Piece {
-    R(Color),
-    N(Color),
-    B(Color),
-    K(Color),
-    Q(Color),
-    P(Color),
+    Rook,
+    Knight,
+    Bishop,
+    King,
+    Queen,
+    Pawn,
     Empty,
 }
 use Piece::*;
-
-impl Piece {
-    fn can_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
-        let first_coord = (first_coord.0 as i32, first_coord.1 as i32);
-        let second_coord = (second_coord.0 as i32, second_coord.1 as i32);
-        match self {
-            R(c) => first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1,
-            N(c) => {
-                abs(first_coord.0 - second_coord.0) == 2 && abs(first_coord.1 - second_coord.1) == 1 ||
-                abs(first_coord.1 - second_coord.1) == 2 && abs(first_coord.0 - second_coord.0) == 1
-            },
-            B(c) => abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1),
-            K(c) => abs(first_coord.0 - second_coord.0) <= 1 && abs(first_coord.1 - second_coord.1) <= 1,
-            Q(c) => {
-                (first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1) || 
-                abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1)
-            },
-            P(c) => {
-                // TODO: fix this simple approximation
-                if c == Wht {
-                    first_coord.0 - second_coord.0 == 1 && first_coord.1 == second_coord.1
-                } else {
-                    first_coord.0 - second_coord.0 == -1 && first_coord.1 == second_coord.1
-                }
-            }
-    }
-}
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -70,59 +42,27 @@ impl fmt::Display for Piece {
     }
 }
 
+struct Tile {
+    color: Color,
+    piece: Option<Piece>,
+}
+
+impl Tile {
+    fn init(color: Color, piece: Piece) -> Tile {
+        Tile {
+            color: color,
+            piece: Some(piece),
+        }
+    }
+}
+
 struct Board {
-    grid: [[Piece; 8]; 8],
+    grid: [[Tile; 8]; 8],
 }
 
 impl Board {
-    fn init() -> Board {
-        let grid = [
-            [
-                R(Blk),
-                N(Blk),
-                B(Blk),
-                Q(Blk),
-                K(Blk),
-                B(Blk),
-                N(Blk),
-                R(Blk),
-            ],
-            [
-                P(Blk),
-                P(Blk),
-                P(Blk),
-                P(Blk),
-                P(Blk),
-                P(Blk),
-                P(Blk),
-                P(Blk),
-            ],
-            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
-            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
-            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
-            [Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty],
-            [
-                P(Wht),
-                P(Wht),
-                P(Wht),
-                P(Wht),
-                P(Wht),
-                P(Wht),
-                P(Wht),
-                P(Wht),
-            ],
-            [
-                R(Wht),
-                N(Wht),
-                B(Wht),
-                Q(Wht),
-                K(Wht),
-                B(Wht),
-                N(Wht),
-                R(Wht),
-            ],
-        ];
-        Board { grid: grid }
+    fn init_from_io() -> Board {
+        
     }
 }
 
@@ -175,29 +115,30 @@ impl GameState {
 
     fn get_legal_moves(self, coord: (usize, usize)) -> Vec<(usize, usize)> {
         // Given piece, return vector of legal moves
-        let piece = self.board.grid[first_coord.0][first_coord.1];
+        let piece = self.board.grid[coord.0][coord.1];
         let mut legal_moves = Vec::new();
 
         match piece {
             Empty => Vec::new(),
             R(c) => {
                 let mut curr_loc = coord;
+                let hi = (curr_loc.0 + 1)..8;
                 // Check up direction
-                for i in [(curr_loc.0 + 1)..8] {
+                for i in (curr_loc.0 + 1)..8 {
                     match self.board.grid[i][curr_loc.1] {
-                        Empty => legal_moves.append((i, curr_loc.1)),
-                        curr_piece(color) => { 
+                        Empty => legal_moves.push((i, curr_loc.1)),
+                        peepee => { 
                             if color == c {
                                 break
                             } else {
-                                legal_moves.append((i, curr_loc.1));
+                                legal_moves.push((i, curr_loc.1));
                                 break
                             }
                         }
                     };
                 }
                 // Check down direction
-                for i in [(curr_loc.0 - 1)..-1] {
+                for i in [(curr_loc.0 - 1)..=0] {
                     match self.board.grid[i][curr_loc.1] {
                         Empty => legal_moves.append((i, curr_loc.1)),
                         curr_piece(color) => { 
