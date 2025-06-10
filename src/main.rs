@@ -182,25 +182,61 @@ impl GameState {
             Empty => Vec::new(),
             R(c) => {
                 let mut curr_loc = coord;
+                // Check up direction
                 for i in [(curr_loc.0 + 1)..8] {
                     match self.board.grid[i][curr_loc.1] {
                         Empty => legal_moves.append((i, curr_loc.1)),
-                        c => break,
-                        _ => {
-                            legal_moves.append((i, curr_loc.1));
-                            break
+                        curr_piece(color) => { 
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((i, curr_loc.1));
+                                break
+                            }
                         }
-                    }
+                    };
                 }
+                // Check down direction
                 for i in [(curr_loc.0 - 1)..-1] {
                     match self.board.grid[i][curr_loc.1] {
                         Empty => legal_moves.append((i, curr_loc.1)),
-                        c => break,
-                        _ => {
-                            legal_moves.append((i, curr_loc.1));
-                            break
+                        curr_piece(color) => { 
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((i, curr_loc.1));
+                                break
+                            }
                         }
-                    }
+                    };
+                }
+                // Check left direction
+                for j in [(curr_loc.1 - 1)..-1] {
+                    match self.board.grid[curr_loc.0][j] {
+                        Empty => legal_moves.append((curr_loc.0, j)),
+                        curr_piece(color) => { 
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((curr_loc.0, j));
+                                break
+                            }
+                        }
+                    };
+                }
+                // Check right direction
+                for j in [(curr_loc.1 + 1)..8] {
+                    match self.board.grid[curr_loc.0][j] {
+                        Empty => legal_moves.append((curr_loc.0, j)),
+                        curr_piece(color) => { 
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((curr_loc.0, j));
+                                break
+                            }
+                        }
+                    };
                 }
             },
         }
