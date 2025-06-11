@@ -1,3 +1,4 @@
+use std::default::*;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -49,6 +50,15 @@ struct Tile {
     piece: Option<Piece>,
 }
 
+impl Default for Tile {
+    fn default() -> Self {
+        Tile {
+            color: None,
+            piece: None,
+        }
+    }
+}
+
 impl Tile {
     fn init(color: Option<Color>, piece: Option<Piece>) -> Tile {
         Tile {
@@ -60,8 +70,9 @@ impl Tile {
     fn init_from_string(tile_str: &str) -> Result<Tile, String> {
         println!("{tile_str}");
 
+        println!("{:#?}", tile_str.len());
         // Check if string is correct length
-        if (tile_str.len() == 1 || tile_str.len() == 4) {
+        if !(tile_str.len() == 1 || tile_str.len() == 4) {
             return Err(String::from(
                 "invalid tile format; incorrect number of chars",
             ));
@@ -110,11 +121,23 @@ impl Tile {
 }
 
 struct Board {
-    grid: Option<[[Tile; 8]; 8]>,
+    grid: [[Tile; 8]; 8],
+}
+
+impl Default for Board {
+    fn default() -> Board {
+        Board::init()
+    }
 }
 
 // TODO: work on this!
 impl Board {
+    fn init() -> Board {
+        // Initialize a board with a completely empty grid
+        let grid: [[Tile; 8]; 8] = Default::default();
+        Board { grid: grid }
+    }
+
     fn init_from_io(file_path: &str) -> Result<Board, String> {
         // Initialize a board from io input.
         let contents =
@@ -133,28 +156,19 @@ impl Board {
             return Err(String::from("Board format is invalid, length mismatch"));
         }
 
-        let mut tile_vec: Vec<Vec<Tile>> = vec![];
-        let mut tile_ind: usize = 0;
+        let mut board = Board::init();
 
         for i in 0..8 as usize {
-            tile_vec.push(vec![]);
             for j in 0..8 as usize {
-                tile_vec[i][j] = match Tile::init_from_string(tile_strs[tile_ind].trim()) {
+                let ind = (i + 1) * (j + 1) - 1;
+                let tile = match Tile::init_from_string(tile_strs[ind].trim()) {
                     Ok(tile) => tile,
                     Err(error_str) => return Err(error_str),
                 };
-                tile_ind += 1
+                board.grid[i][j] = tile;
             }
         }
-
-        for tile_str in tile_strs {
-            let tile = match Tile::init_from_string(tile_str.trim()) {
-                Ok(tile) => tile,
-                Err(error_str) => return Err(error_str),
-            };
-        }
-
-        Ok(Board { grid: None })
+        Ok(board)
     }
 }
 
