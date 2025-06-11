@@ -19,13 +19,12 @@ impl fmt::Display for Color {
 }
 
 enum Piece {
-    Rook,
-    Knight,
-    Bishop,
-    King,
-    Queen,
-    Pawn,
-    Empty,
+    R,
+    N,
+    B,
+    K,
+    Q,
+    P,
 }
 use Piece::*;
 
@@ -46,32 +45,118 @@ impl fmt::Display for Piece {
 */
 
 struct Tile {
-    color: Color,
+    color: Option<Color>,
     piece: Option<Piece>,
 }
 
 impl Tile {
-    fn init(color: Color, piece: Piece) -> Tile {
+    fn init(color: Option<Color>, piece: Option<Piece>) -> Tile {
         Tile {
             color: color,
-            piece: Some(piece),
+            piece: piece,
         }
+    }
+
+    fn init_from_string(tile_str: &str) -> Result<Tile, String> {
+        println!("{tile_str}");
+
+        // Check if string is correct length
+        if (tile_str.len() == 1 || tile_str.len() == 4) {
+            return Err(String::from(
+                "invalid tile format; incorrect number of chars",
+            ));
+        }
+
+        // First char definitely exists at this point
+        let first_char = tile_str.chars().nth(0).unwrap();
+
+        // Handle empty squares first
+        if first_char == '-' {
+            return Ok(Tile {
+                color: None,
+                piece: None,
+            });
+        }
+
+        // Check if longer string is correctly formatted
+        if !(tile_str.chars().nth(1).unwrap() == '(' && tile_str.chars().nth(3).unwrap() == ')') {
+            return Err(String::from("invalid tile format; expected parenthesis"));
+        }
+
+        // Third char definitely exists and is relevant at this point
+        let third_char = tile_str.chars().nth(2).unwrap();
+
+        let piece: Piece = match first_char {
+            'r' => R,
+            'n' => N,
+            'b' => B,
+            'q' => Q,
+            'k' => K,
+            'p' => P,
+            _ => return Err(String::from("did not enter a valid piece")),
+        };
+
+        let color: Color = match third_char {
+            'b' => Blk,
+            'w' => Wht,
+            _ => return Err(String::from("did not enter a valid color")),
+        };
+
+        Ok(Tile {
+            color: Some(color),
+            piece: Some(piece),
+        })
     }
 }
 
 struct Board {
-    grid: [[Tile; 8]; 8],
+    grid: Option<[[Tile; 8]; 8]>,
 }
 
-/*
+// TODO: work on this!
 impl Board {
-    fn init_from_io(file_path: String) {
+    fn init_from_io(file_path: &str) -> Result<Board, String> {
+        // Initialize a board from io input.
         let contents =
             fs::read_to_string(file_path).expect("Should have been able to read the file");
-        
+
+        return Board::init_from_string(&contents);
+    }
+
+    fn init_from_string(config_str: &str) -> Result<Board, String> {
+        // Initialize a board from string input.
+        let tile_strs: Vec<&str> = config_str.split(",").collect();
+
+        println!("{:#?}", tile_strs.len());
+
+        if tile_strs.len() != 64 {
+            return Err(String::from("Board format is invalid, length mismatch"));
+        }
+
+        let mut tile_vec: Vec<Vec<Tile>> = vec![];
+        let mut tile_ind: usize = 0;
+
+        for i in 0..8 as usize {
+            tile_vec.push(vec![]);
+            for j in 0..8 as usize {
+                tile_vec[i][j] = match Tile::init_from_string(tile_strs[tile_ind].trim()) {
+                    Ok(tile) => tile,
+                    Err(error_str) => return Err(error_str),
+                };
+                tile_ind += 1
+            }
+        }
+
+        for tile_str in tile_strs {
+            let tile = match Tile::init_from_string(tile_str.trim()) {
+                Ok(tile) => tile,
+                Err(error_str) => return Err(error_str),
+            };
+        }
+
+        Ok(Board { grid: None })
     }
 }
-*/
 
 /*
 impl fmt::Display for Board {
@@ -98,7 +183,7 @@ impl fmt::Display for Board {
 struct GameState {
     in_progress: bool,
     turn: Color,
-    // board: Board,
+    board: Board,
 }
 
 impl GameState {
@@ -106,7 +191,7 @@ impl GameState {
         GameState {
             in_progress: true,
             turn: Wht,
-            // board: Board::init_from_io("boards/standard".to_string()),
+            board: Board::init_from_io("boards/standard").unwrap(),
         }
     }
     /*
@@ -253,11 +338,6 @@ impl GameState {
 }
 
 fn main() {
-    let file_path: String = "boards/standard".to_string();
-    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
-
-    println!("{contents}");
-    /*
     let my_game = GameState::init();
     while my_game.in_progress {
         println!("{} to move:", my_game.turn);
@@ -271,6 +351,7 @@ fn main() {
 
         let first_pos = proposed_move.next();
 
+        /*
         let first_coord = match convert_coord(first_pos) {
             None => {
                 println!("Invalid format: Use chess coordinates to describe position (i.e a6)");
@@ -293,6 +374,6 @@ fn main() {
 
         println!("{:#?}", first_coord);
         println!("{:#?}", second_coord);
+        */
     }
-    */
 }
