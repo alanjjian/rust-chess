@@ -194,6 +194,48 @@ impl fmt::Display for Board {
     }
 }
 
+struct Coord {
+    // Coord object allows for easy conversion between each type of coordinate.
+    // index: represents coordinates that can directly query a tile on the board object (from top left corner, row first).
+    // coord: represents chess coordinates the way we think of them (from bottom left corner, column first)
+    // chess_notation: string representation of coordinate (i.e "a6").
+    index: (usize, usize),
+    coord: (usize, usize),
+    chess_notation: String
+}
+
+impl Coord {
+
+    fn init(y: usize, x: usize) -> Coord {
+        Coord {
+            index: (y, x),
+            coord: (x, y),
+            chess_notation: "".to_string(),
+        }
+    } 
+
+    fn init_from_string(pos: Option<&str>) -> Result<Coord, String> {
+        // format is correct
+        match pos {
+            None => Err("Couldn't initialize blank coordinates".to_string()),
+            Some(coord) => {
+                if coord.len() != 2 {
+                    return Err("Input is invalid length".to_string());
+                }
+                let mut coord_iter = coord.chars();
+                let x = coord_iter.next().unwrap();
+                let y = coord_iter.next().unwrap();
+                if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
+                    let y = 8 as usize - y.to_digit(10).unwrap() as usize;
+                    let x = x as usize - 'a' as usize;
+                    return Ok(Coord::init(y, x));
+                } else {
+                    return Err("Weird coordinates you got there!".to_string());
+                }
+            }
+        }
+    }
+}
 struct GameState {
     in_progress: bool,
     turn: Color,
@@ -209,146 +251,144 @@ impl GameState {
         }
     }
     /*
-        fn move_piece(
-            self,
-            first_coord: (usize, usize),
-            second_coord: (usize, usize),
-        ) -> Result<(), String> {
-            // If the move is legal, make the move. Return an Option
-            if !self.is_legal_move(first_coord, second_coord) {
-                return Err("Illegal move; enter a legal move.".to_string());
-            }
-            Ok(())
+    fn move_piece(
+        self,
+        first_coord: (usize, usize),
+        second_coord: (usize, usize),
+    ) -> Result<(), String> {
+        // If the move is legal, make the move. Return an Option
+        if !self.is_legal_move(first_coord, second_coord) {
+            return Err("Illegal move; enter a legal move.".to_string());
         }
-
-        fn get_legal_moves(self, coord: (usize, usize)) -> Vec<(usize, usize)> {
-            // Given piece, return vector of legal moves
-            let piece = self.board.grid[coord.0][coord.1];
-            let mut legal_moves = Vec::new();
-
-            match piece {
-                Empty => Vec::new(),
-                R(c) => {
-                    let mut curr_loc = coord;
-                    let hi = (curr_loc.0 + 1)..8;
-                    // Check up direction
-                    for i in (curr_loc.0 + 1)..8 {
-                        match self.board.grid[i][curr_loc.1] {
-                            Empty => legal_moves.push((i, curr_loc.1)),
-                            peepee => {
-                                if color == c {
-                                    break
-                                } else {
-                                    legal_moves.push((i, curr_loc.1));
-                                    break
-                                }
-                            }
-                        };
-                    }
-                    // Check down direction
-                    for i in [(curr_loc.0 - 1)..=0] {
-                        match self.board.grid[i][curr_loc.1] {
-                            Empty => legal_moves.append((i, curr_loc.1)),
-                            curr_piece(color) => {
-                                if color == c {
-                                    break
-                                } else {
-                                    legal_moves.append((i, curr_loc.1));
-                                    break
-                                }
-                            }
-                        };
-                    }
-                    // Check left direction
-                    for j in [(curr_loc.1 - 1)..-1] {
-                        match self.board.grid[curr_loc.0][j] {
-                            Empty => legal_moves.append((curr_loc.0, j)),
-                            curr_piece(color) => {
-                                if color == c {
-                                    break
-                                } else {
-                                    legal_moves.append((curr_loc.0, j));
-                                    break
-                                }
-                            }
-                        };
-                    }
-                    // Check right direction
-                    for j in [(curr_loc.1 + 1)..8] {
-                        match self.board.grid[curr_loc.0][j] {
-                            Empty => legal_moves.append((curr_loc.0, j)),
-                            curr_piece(color) => {
-                                if color == c {
-                                    break
-                                } else {
-                                    legal_moves.append((curr_loc.0, j));
-                                    break
-                                }
-                            }
-                        };
-                    }
-                },
-            }
-        }
-
-        fn is_legal_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
-            // What makes a legal move?
-            // Ideally, we would like to have a set of legal moves to consider.
-            // Where should we store it? When should we compute the set of legal moves?
-            let first_piece = self.board.grid[first_coord.0][first_coord.1];
-
-            let first_coord = (first_coord.0 as i32, first_coord.1 as i32);
-            let second_coord = (second_coord.0 as i32, second_coord.1 as i32);
-
-            match first_piece {
-                Empty => false,
-                R(c) => is_legal_move_rook() // first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1,
-                N(c) => {
-                    abs(first_coord.0 - second_coord.0) == 2 && abs(first_coord.1 - second_coord.1) == 1 ||
-                    abs(first_coord.1 - second_coord.1) == 2 && abs(first_coord.0 - second_coord.0) == 1
-                },
-                B(c) => abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1),
-                K(c) => abs(first_coord.0 - second_coord.0) <= 1 && abs(first_coord.1 - second_coord.1) <= 1,
-                Q(c) => {
-                    (first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1) ||
-                    abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1)
-                },
-                P(c) => {
-                    // TODO: fix this simple approximation
-                    if c == Wht {
-                        first_coord.0 - second_coord.0 == 1 && first_coord.1 == second_coord.1
-                    } else {
-                        first_coord.0 - second_coord.0 == -1 && first_coord.1 == second_coord.1
-                    }
-                }
-            }
-
-        }
-
-
+        Ok(())
     }
 
-    fn convert_coord(pos: Option<&str>) -> Option<(usize, usize)> {
-        // format is correct
-        match pos {
-            None => None,
-            Some(coord) => {
-                if coord.len() != 2 {
-                    return None;
+    fn get_legal_moves(self, coord: (usize, usize)) -> Vec<(usize, usize)> {
+        // Given piece, return vector of legal moves
+        let piece = self.board.grid[coord.0][coord.1];
+        let mut legal_moves = Vec::new();
+
+        match piece {
+            Empty => Vec::new(),
+            R(c) => {
+                let mut curr_loc = coord;
+                let hi = (curr_loc.0 + 1)..8;
+                // Check up direction
+                for i in (curr_loc.0 + 1)..8 {
+                    match self.board.grid[i][curr_loc.1] {
+                        Empty => legal_moves.push((i, curr_loc.1)),
+                        peepee => {
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.push((i, curr_loc.1));
+                                break
+                            }
+                        }
+                    };
                 }
-                let mut coord_iter = coord.chars();
-                let x = coord_iter.next().unwrap();
-                let y = coord_iter.next().unwrap();
-                if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
-                    let y = 8 as usize - y.to_digit(10).unwrap() as usize;
-                    let x = x as usize - 'a' as usize;
-                    return Some((y, x));
+                // Check down direction
+                for i in [(curr_loc.0 - 1)..=0] {
+                    match self.board.grid[i][curr_loc.1] {
+                        Empty => legal_moves.append((i, curr_loc.1)),
+                        curr_piece(color) => {
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((i, curr_loc.1));
+                                break
+                            }
+                        }
+                    };
+                }
+                // Check left direction
+                for j in [(curr_loc.1 - 1)..-1] {
+                    match self.board.grid[curr_loc.0][j] {
+                        Empty => legal_moves.append((curr_loc.0, j)),
+                        curr_piece(color) => {
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((curr_loc.0, j));
+                                break
+                            }
+                        }
+                    };
+                }
+                // Check right direction
+                for j in [(curr_loc.1 + 1)..8] {
+                    match self.board.grid[curr_loc.0][j] {
+                        Empty => legal_moves.append((curr_loc.0, j)),
+                        curr_piece(color) => {
+                            if color == c {
+                                break
+                            } else {
+                                legal_moves.append((curr_loc.0, j));
+                                break
+                            }
+                        }
+                    };
+                }
+            },
+        }
+    }
+
+    fn is_legal_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
+        // What makes a legal move?
+        // Ideally, we would like to have a set of legal moves to consider.
+        // Where should we store it? When should we compute the set of legal moves?
+        let first_piece = self.board.grid[first_coord.0][first_coord.1];
+
+        let first_coord = (first_coord.0 as i32, first_coord.1 as i32);
+        let second_coord = (second_coord.0 as i32, second_coord.1 as i32);
+
+        match first_piece {
+            Empty => false,
+            R(c) => is_legal_move_rook() // first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1,
+            N(c) => {
+                abs(first_coord.0 - second_coord.0) == 2 && abs(first_coord.1 - second_coord.1) == 1 ||
+                abs(first_coord.1 - second_coord.1) == 2 && abs(first_coord.0 - second_coord.0) == 1
+            },
+            B(c) => abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1),
+            K(c) => abs(first_coord.0 - second_coord.0) <= 1 && abs(first_coord.1 - second_coord.1) <= 1,
+            Q(c) => {
+                (first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1) ||
+                abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1)
+            },
+            P(c) => {
+                // TODO: fix this simple approximation
+                if c == Wht {
+                    first_coord.0 - second_coord.0 == 1 && first_coord.1 == second_coord.1
                 } else {
-                    return None;
+                    first_coord.0 - second_coord.0 == -1 && first_coord.1 == second_coord.1
                 }
             }
         }
+
+    }
     */
+}
+
+fn convert_coord(pos: Option<&str>) -> Option<(usize, usize)> {
+    // format is correct
+    match pos {
+        None => None,
+        Some(coord) => {
+            if coord.len() != 2 {
+                return None;
+            }
+            let mut coord_iter = coord.chars();
+            let x = coord_iter.next().unwrap();
+            let y = coord_iter.next().unwrap();
+            if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
+                let y = 8 as usize - y.to_digit(10).unwrap() as usize;
+                let x = x as usize - 'a' as usize;
+                return Some((y, x));
+            } else {
+                return None;
+            }
+        }
+    }
 }
 
 fn main() {
@@ -366,7 +406,6 @@ fn main() {
 
         let first_pos = proposed_move.next();
 
-        /*
         let first_coord = match convert_coord(first_pos) {
             None => {
                 println!("Invalid format: Use chess coordinates to describe position (i.e a6)");
