@@ -29,33 +29,39 @@ enum Piece {
 }
 use Piece::*;
 
-/*
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            R(color) => write!(f, "R({color})"),
-            N(color) => write!(f, "N({color})"),
-            B(color) => write!(f, "B({color})"),
-            K(color) => write!(f, "K({color})"),
-            Q(color) => write!(f, "Q({color})"),
-            P(color) => write!(f, "P({color})"),
-            Empty => write!(f, "      "),
+            R => write!(f, "R"),
+            N => write!(f, "N"),
+            B => write!(f, "B"),
+            K => write!(f, "K"),
+            Q => write!(f, "Q"),
+            P => write!(f, "P"),
         }
     }
 }
-*/
 
 struct Tile {
     color: Option<Color>,
     piece: Option<Piece>,
 }
 
+impl fmt::Display for Tile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.color.is_none() && self.piece.is_none() {
+            write!(f, "      ")
+        } else {
+            let piece = self.piece.as_ref().unwrap();
+            let color = self.color.as_ref().unwrap();
+            write!(f, "{piece}({color})")
+        }
+    }
+}
+
 impl Default for Tile {
     fn default() -> Self {
-        Tile {
-            color: None,
-            piece: None,
-        }
+        Tile::init(None, None)
     }
 }
 
@@ -68,9 +74,6 @@ impl Tile {
     }
 
     fn init_from_string(tile_str: &str) -> Result<Tile, String> {
-        println!("{tile_str}");
-
-        println!("{:#?}", tile_str.len());
         // Check if string is correct length
         if !(tile_str.len() == 1 || tile_str.len() == 4) {
             return Err(String::from(
@@ -130,7 +133,6 @@ impl Default for Board {
     }
 }
 
-// TODO: work on this!
 impl Board {
     fn init() -> Board {
         // Initialize a board with a completely empty grid
@@ -150,29 +152,28 @@ impl Board {
         // Initialize a board from string input.
         let tile_strs: Vec<&str> = config_str.split(",").collect();
 
-        println!("{:#?}", tile_strs.len());
-
         if tile_strs.len() != 64 {
             return Err(String::from("Board format is invalid, length mismatch"));
         }
 
         let mut board = Board::init();
+        let mut ind = 0;
 
         for i in 0..8 as usize {
             for j in 0..8 as usize {
-                let ind = (i + 1) * (j + 1) - 1;
                 let tile = match Tile::init_from_string(tile_strs[ind].trim()) {
                     Ok(tile) => tile,
                     Err(error_str) => return Err(error_str),
                 };
+                println!("{tile}");
                 board.grid[i][j] = tile;
+                ind += 1;
             }
         }
         Ok(board)
     }
 }
 
-/*
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -181,8 +182,8 @@ impl fmt::Display for Board {
         )?;
         for rank in &self.grid {
             write!(f, "| ")?;
-            for piece in rank {
-                write!(f, "{piece} | ")?;
+            for tile in rank {
+                write!(f, "{tile} | ")?;
             }
             write!(
                 f,
@@ -192,7 +193,6 @@ impl fmt::Display for Board {
         Ok(())
     }
 }
-*/
 
 struct GameState {
     in_progress: bool,
@@ -354,6 +354,7 @@ impl GameState {
 fn main() {
     let my_game = GameState::init();
     while my_game.in_progress {
+        println!("{}", my_game.board);
         println!("{} to move:", my_game.turn);
         let mut proposed_move = String::new();
 
