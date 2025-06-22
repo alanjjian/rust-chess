@@ -195,24 +195,13 @@ impl fmt::Display for Board {
 }
 
 struct Coord {
-    // Coord object allows for easy conversion between each type of coordinate.
-    // index: represents coordinates that can directly query a tile on the board object (from top left corner, row first).
-    // coord: represents chess coordinates the way we think of them (from bottom left corner, column first)
-    // chess_notation: string representation of coordinate (i.e "a6").
-    index: (usize, usize),
-    coord: (usize, usize),
-    chess_notation: String
+    // Coordinates read from bottom-left
+    // To get index, use 
+    x: usize,
+    y: usize,
 }
 
 impl Coord {
-
-    fn init(y: usize, x: usize) -> Coord {
-        Coord {
-            index: (y, x),
-            coord: (x, y),
-            chess_notation: "".to_string(),
-        }
-    } 
 
     fn init_from_string(pos: Option<&str>) -> Result<Coord, String> {
         // format is correct
@@ -228,12 +217,19 @@ impl Coord {
                 if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
                     let y = 8 as usize - y.to_digit(10).unwrap() as usize;
                     let x = x as usize - 'a' as usize;
-                    return Ok(Coord::init(y, x));
+                    return Ok(Coord {
+                        x: x,
+                        y: y,
+                    });
                 } else {
                     return Err("Weird coordinates you got there!".to_string());
                 }
             }
         }
+    }
+
+    fn get_index(self) -> (usize, usize) {
+        return (self.y, self.x)
     }
 }
 struct GameState {
@@ -369,28 +365,6 @@ impl GameState {
     */
 }
 
-fn convert_coord(pos: Option<&str>) -> Option<(usize, usize)> {
-    // format is correct
-    match pos {
-        None => None,
-        Some(coord) => {
-            if coord.len() != 2 {
-                return None;
-            }
-            let mut coord_iter = coord.chars();
-            let x = coord_iter.next().unwrap();
-            let y = coord_iter.next().unwrap();
-            if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
-                let y = 8 as usize - y.to_digit(10).unwrap() as usize;
-                let x = x as usize - 'a' as usize;
-                return Some((y, x));
-            } else {
-                return None;
-            }
-        }
-    }
-}
-
 fn main() {
     let my_game = GameState::init();
     while my_game.in_progress {
@@ -406,22 +380,22 @@ fn main() {
 
         let first_pos = proposed_move.next();
 
-        let first_coord = match convert_coord(first_pos) {
-            None => {
-                println!("Invalid format: Use chess coordinates to describe position (i.e a6)");
+        let first_coord = match Coord::init_from_string(first_pos) {
+            Err(string) => {
+                println!("{string}");
                 continue;
             }
-            Some(coord) => coord,
+            Ok(coord) => coord,
         };
 
         let second_pos = proposed_move.next();
 
-        let second_coord = match convert_coord(second_pos) {
-            None => {
-                println!("Invalid format: Use chess coordinates to describe position (i.e a6)");
+        let second_coord = match Coord::init_from_string(first_pos) {
+            Err(string) => {
+                println!("{string}");
                 continue;
             }
-            Some(coord) => coord,
+            Ok(coord) => coord,
         };
 
         my_game.move_piece(first_coord, second_coord);
