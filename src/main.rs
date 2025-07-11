@@ -424,3 +424,5 @@ fn main() {
         };
     }
 }
+
+// TODO: Figure out how unit testing works in rust, implement custom boards and puzzles
