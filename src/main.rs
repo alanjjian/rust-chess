@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs;
 use std::io;
 
+#[derive(PartialEq, Eq, Clone, Copy)]
 enum Color {
     // #idoseecoloractually
     Blk,
@@ -19,6 +20,7 @@ impl fmt::Display for Color {
     }
 }
 
+#[derive(Clone, Copy)]
 enum Piece {
     R,
     N,
@@ -42,6 +44,7 @@ impl fmt::Display for Piece {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Tile {
     color: Option<Color>,
     piece: Option<Piece>,
@@ -172,6 +175,17 @@ impl Board {
         }
         Ok(board)
     }
+
+    fn get_tile(&self, coord: Coord) -> &Tile {
+        return &self.grid[coord.y][coord.x];
+    }
+
+    fn set_tile(&mut self, coord: Coord, piece: Option<Piece>, color: Option<Color>) {
+        self.grid[coord.y][coord.x] = Tile {
+            piece: piece,
+            color: color,
+        }
+    }
 }
 
 impl fmt::Display for Board {
@@ -194,15 +208,15 @@ impl fmt::Display for Board {
     }
 }
 
+#[derive(PartialEq, Clone, Copy)]
 struct Coord {
     // Coordinates read from bottom-left
-    // To get index, use 
+    // To get index, use
     x: usize,
     y: usize,
 }
 
 impl Coord {
-
     fn init_from_string(pos: Option<&str>) -> Result<Coord, String> {
         // format is correct
         match pos {
@@ -217,19 +231,12 @@ impl Coord {
                 if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
                     let y = 8 as usize - y.to_digit(10).unwrap() as usize;
                     let x = x as usize - 'a' as usize;
-                    return Ok(Coord {
-                        x: x,
-                        y: y,
-                    });
+                    return Ok(Coord { x: x, y: y });
                 } else {
                     return Err("Weird coordinates you got there!".to_string());
                 }
             }
         }
-    }
-
-    fn get_index(self) -> (usize, usize) {
-        return (self.y, self.x)
     }
 }
 struct GameState {
@@ -246,130 +253,140 @@ impl GameState {
             board: Board::init_from_io("boards/standard").unwrap(),
         }
     }
-    /*
-    fn move_piece(
-        self,
-        first_coord: (usize, usize),
-        second_coord: (usize, usize),
-    ) -> Result<(), String> {
+
+    fn move_piece(&mut self, first_coord: Coord, second_coord: Coord) -> Result<(), String> {
         // If the move is legal, make the move. Return an Option
+
         if !self.is_legal_move(first_coord, second_coord) {
             return Err("Illegal move; enter a legal move.".to_string());
         }
+        let board = &mut self.board;
+        let tile = board.get_tile(first_coord);
+        let piece = tile.piece.as_ref().unwrap();
+        let color = tile.color.as_ref().unwrap();
+
+        board.set_tile(second_coord, Some(*piece), Some(*color));
+        board.set_tile(first_coord, None, None);
         Ok(())
     }
 
-    fn get_legal_moves(self, coord: (usize, usize)) -> Vec<(usize, usize)> {
-        // Given piece, return vector of legal moves
-        let piece = self.board.grid[coord.0][coord.1];
+    fn get_legal_moves(&self, coord: Coord) -> Vec<Coord> {
+        // Given a coord, return vector of legal moves based on piece located at that coord.
+        let tile = self.board.get_tile(coord);
+
+        let piece = match &tile.piece {
+            None => return vec![],
+            Some(piece) => piece,
+        };
+
+        let color = tile.color.as_ref().unwrap();
+
         let mut legal_moves = Vec::new();
 
         match piece {
-            Empty => Vec::new(),
-            R(c) => {
+            R => {
                 let mut curr_loc = coord;
-                let hi = (curr_loc.0 + 1)..8;
+
                 // Check up direction
-                for i in (curr_loc.0 + 1)..8 {
-                    match self.board.grid[i][curr_loc.1] {
-                        Empty => legal_moves.push((i, curr_loc.1)),
-                        peepee => {
-                            if color == c {
-                                break
-                            } else {
-                                legal_moves.push((i, curr_loc.1));
-                                break
+                for i in (curr_loc.y + 1)..8 {
+                    curr_loc = Coord {
+                        x: curr_loc.x,
+                        y: i,
+                    };
+                    let curr_tile = self.board.get_tile(curr_loc);
+                    match self.board.get_tile(curr_loc).piece {
+                        None => {
+                            legal_moves.push(curr_loc);
+                        }
+                        Some(_piece) => {
+                            if &curr_tile.color.unwrap() != color {
+                                legal_moves.push(curr_loc)
                             }
+                            break;
                         }
                     };
                 }
+
                 // Check down direction
-                for i in [(curr_loc.0 - 1)..=0] {
-                    match self.board.grid[i][curr_loc.1] {
-                        Empty => legal_moves.append((i, curr_loc.1)),
-                        curr_piece(color) => {
-                            if color == c {
-                                break
-                            } else {
-                                legal_moves.append((i, curr_loc.1));
-                                break
+                for i in (curr_loc.y - 1)..=0 {
+                    curr_loc = Coord {
+                        x: curr_loc.x,
+                        y: i,
+                    };
+                    let curr_tile = self.board.get_tile(curr_loc);
+                    match self.board.get_tile(curr_loc).piece {
+                        None => {
+                            legal_moves.push(curr_loc);
+                        }
+                        Some(_piece) => {
+                            if &curr_tile.color.unwrap() != color {
+                                legal_moves.push(curr_loc)
                             }
+                            break;
                         }
                     };
                 }
+
                 // Check left direction
-                for j in [(curr_loc.1 - 1)..-1] {
-                    match self.board.grid[curr_loc.0][j] {
-                        Empty => legal_moves.append((curr_loc.0, j)),
-                        curr_piece(color) => {
-                            if color == c {
-                                break
-                            } else {
-                                legal_moves.append((curr_loc.0, j));
-                                break
+                for j in (curr_loc.x - 1)..=0 {
+                    curr_loc = Coord {
+                        x: j,
+                        y: curr_loc.y,
+                    };
+                    let curr_tile = self.board.get_tile(curr_loc);
+                    match self.board.get_tile(curr_loc).piece {
+                        None => {
+                            legal_moves.push(curr_loc);
+                        }
+                        Some(_piece) => {
+                            if &curr_tile.color.unwrap() != color {
+                                legal_moves.push(curr_loc)
                             }
+                            break;
                         }
                     };
                 }
+
                 // Check right direction
-                for j in [(curr_loc.1 + 1)..8] {
-                    match self.board.grid[curr_loc.0][j] {
-                        Empty => legal_moves.append((curr_loc.0, j)),
-                        curr_piece(color) => {
-                            if color == c {
-                                break
-                            } else {
-                                legal_moves.append((curr_loc.0, j));
-                                break
+                for j in (curr_loc.y + 1)..8 {
+                    curr_loc = Coord {
+                        x: j,
+                        y: curr_loc.y,
+                    };
+                    let curr_tile = self.board.get_tile(curr_loc);
+                    match self.board.get_tile(curr_loc).piece {
+                        None => {
+                            legal_moves.push(curr_loc);
+                        }
+                        Some(_piece) => {
+                            if &curr_tile.color.unwrap() != color {
+                                legal_moves.push(curr_loc)
                             }
+                            break;
                         }
                     };
                 }
-            },
-        }
+            }
+            _ => (),
+        };
+        legal_moves
     }
 
-    fn is_legal_move(self, first_coord: (usize, usize), second_coord: (usize, usize)) -> bool {
+    fn is_legal_move(&self, first_coord: Coord, second_coord: Coord) -> bool {
         // What makes a legal move?
         // Ideally, we would like to have a set of legal moves to consider.
         // Where should we store it? When should we compute the set of legal moves?
-        let first_piece = self.board.grid[first_coord.0][first_coord.1];
 
-        let first_coord = (first_coord.0 as i32, first_coord.1 as i32);
-        let second_coord = (second_coord.0 as i32, second_coord.1 as i32);
-
-        match first_piece {
-            Empty => false,
-            R(c) => is_legal_move_rook() // first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1,
-            N(c) => {
-                abs(first_coord.0 - second_coord.0) == 2 && abs(first_coord.1 - second_coord.1) == 1 ||
-                abs(first_coord.1 - second_coord.1) == 2 && abs(first_coord.0 - second_coord.0) == 1
-            },
-            B(c) => abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1),
-            K(c) => abs(first_coord.0 - second_coord.0) <= 1 && abs(first_coord.1 - second_coord.1) <= 1,
-            Q(c) => {
-                (first_coord.0 == second_coord.0 || first_coord.1 == second_coord.1) ||
-                abs(first_coord.0 - second_coord.0) == abs(first_coord.1 - second_coord.1)
-            },
-            P(c) => {
-                // TODO: fix this simple approximation
-                if c == Wht {
-                    first_coord.0 - second_coord.0 == 1 && first_coord.1 == second_coord.1
-                } else {
-                    first_coord.0 - second_coord.0 == -1 && first_coord.1 == second_coord.1
-                }
-            }
-        }
-
+        self.get_legal_moves(first_coord).contains(&second_coord)
     }
-    */
 }
 
 fn main() {
-    let my_game = GameState::init();
+    let mut my_game = GameState::init();
+
     while my_game.in_progress {
-        println!("{}", my_game.board);
-        println!("{} to move:", my_game.turn);
+        println!("{}", &my_game.board);
+        println!("{} to move:", &my_game.turn);
         let mut proposed_move = String::new();
 
         io::stdin()
@@ -390,7 +407,7 @@ fn main() {
 
         let second_pos = proposed_move.next();
 
-        let second_coord = match Coord::init_from_string(first_pos) {
+        let second_coord = match Coord::init_from_string(second_pos) {
             Err(string) => {
                 println!("{string}");
                 continue;
@@ -398,10 +415,12 @@ fn main() {
             Ok(coord) => coord,
         };
 
-        my_game.move_piece(first_coord, second_coord);
-
-        println!("{:#?}", first_coord);
-        println!("{:#?}", second_coord);
-        */
+        match my_game.move_piece(first_coord, second_coord) {
+            Err(string) => {
+                println!("{string}");
+                continue;
+            }
+            _ => (),
+        };
     }
 }
