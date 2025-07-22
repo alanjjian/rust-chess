@@ -4,7 +4,6 @@ use std::fs;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Color {
-    // #idoseecoloractually
     Blk,
     Wht,
 }
@@ -167,7 +166,6 @@ impl Board {
                     Ok(tile) => tile,
                     Err(error_str) => return Err(error_str),
                 };
-                println!("{tile}");
                 board.grid[i][j] = tile;
                 ind += 1;
             }
@@ -245,11 +243,11 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn init() -> GameState {
+    pub fn init(turn: &Color, board_path: &str) -> GameState {
         GameState {
             in_progress: true,
-            turn: Wht,
-            board: Board::init_from_io("boards/standard").unwrap(),
+            turn: *turn,
+            board: Board::init_from_io(board_path).unwrap(),
         }
     }
 

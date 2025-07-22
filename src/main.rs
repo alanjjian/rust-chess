@@ -1,10 +1,10 @@
-
-use chess::GameState;
+use chess::Color::*;
 use chess::Coord;
+use chess::GameState;
 use std::io;
 
 fn main() {
-    let mut my_game = GameState::init();
+    let mut my_game = GameState::init(&Wht, "boards/standard");
 
     while my_game.in_progress {
         println!("{}", &my_game.board);
