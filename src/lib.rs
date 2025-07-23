@@ -174,11 +174,11 @@ impl Board {
     }
 
     fn get_tile(&self, coord: Coord) -> &Tile {
-        return &self.grid[coord.y][coord.x];
+        return &self.grid[7 as usize - coord.y][coord.x];
     }
 
     fn set_tile(&mut self, coord: Coord, piece: Option<Piece>, color: Option<Color>) {
-        self.grid[coord.y][coord.x] = Tile {
+        self.grid[7 as usize - coord.y][coord.x] = Tile {
             piece: piece,
             color: color,
         }
@@ -226,7 +226,7 @@ impl Coord {
                 let x = coord_iter.next().unwrap();
                 let y = coord_iter.next().unwrap();
                 if ('a'..='h').contains(&x) && ('1'..='8').contains(&y) {
-                    let y = 8 as usize - y.to_digit(10).unwrap() as usize;
+                    let y = y.to_digit(10).unwrap() as usize - 1 as usize;
                     let x = x as usize - 'a' as usize;
                     return Ok(Coord { x: x, y: y });
                 } else {
@@ -304,51 +304,154 @@ impl GameState {
                     };
                 }
 
+                let mut curr_loc = coord;
+
                 // Check down direction
-                for i in (curr_loc.y - 1)..=0 {
-                    curr_loc = Coord {
-                        x: curr_loc.x,
-                        y: i,
-                    };
-                    let curr_tile = self.board.get_tile(curr_loc);
-                    match self.board.get_tile(curr_loc).piece {
-                        None => {
-                            legal_moves.push(curr_loc);
-                        }
-                        Some(_piece) => {
-                            if &curr_tile.color.unwrap() != color {
-                                legal_moves.push(curr_loc)
+                if curr_loc.y > 0 {
+                    for i in (curr_loc.y - 1)..=0 {
+                        curr_loc = Coord {
+                            x: curr_loc.x,
+                            y: i,
+                        };
+                        let curr_tile = self.board.get_tile(curr_loc);
+                        match self.board.get_tile(curr_loc).piece {
+                            None => {
+                                legal_moves.push(curr_loc);
                             }
-                            break;
-                        }
-                    };
+                            Some(_piece) => {
+                                if &curr_tile.color.unwrap() != color {
+                                    legal_moves.push(curr_loc)
+                                }
+                                break;
+                            }
+                        };
+                    }
                 }
 
+                let mut curr_loc = coord;
+
                 // Check left direction
-                for j in (curr_loc.x - 1)..=0 {
-                    curr_loc = Coord {
-                        x: j,
-                        y: curr_loc.y,
-                    };
-                    let curr_tile = self.board.get_tile(curr_loc);
-                    match self.board.get_tile(curr_loc).piece {
-                        None => {
-                            legal_moves.push(curr_loc);
-                        }
-                        Some(_piece) => {
-                            if &curr_tile.color.unwrap() != color {
-                                legal_moves.push(curr_loc)
+                if curr_loc.x > 0 {
+                    for j in (curr_loc.x - 1)..=0 {
+                        curr_loc = Coord {
+                            x: j,
+                            y: curr_loc.y,
+                        };
+                        let curr_tile = self.board.get_tile(curr_loc);
+                        match self.board.get_tile(curr_loc).piece {
+                            None => {
+                                legal_moves.push(curr_loc);
                             }
-                            break;
-                        }
-                    };
+                            Some(_piece) => {
+                                if &curr_tile.color.unwrap() != color {
+                                    legal_moves.push(curr_loc)
+                                }
+                                break;
+                            }
+                        };
+                    }
                 }
+
+                let mut curr_loc = coord;
 
                 // Check right direction
                 for j in (curr_loc.y + 1)..8 {
                     curr_loc = Coord {
                         x: j,
                         y: curr_loc.y,
+                    };
+                    let curr_tile = self.board.get_tile(curr_loc);
+                    match self.board.get_tile(curr_loc).piece {
+                        None => {
+                            legal_moves.push(curr_loc);
+                        }
+                        Some(_piece) => {
+                            if &curr_tile.color.unwrap() != color {
+                                legal_moves.push(curr_loc)
+                            }
+                            break;
+                        }
+                    };
+                }
+            }
+            B => {
+                let mut curr_loc = coord;
+
+                // Down to the left
+                loop {
+                    if curr_loc.y == 0 || curr_loc.x == 0 {
+                        break;
+                    } else {
+                        curr_loc.y -= 1;
+                        curr_loc.x -= 1;
+                        let curr_tile = self.board.get_tile(curr_loc);
+                        match self.board.get_tile(curr_loc).piece {
+                            None => {}
+                            Some(_piece) => {
+                                if &curr_tile.color.unwrap() != color {
+                                    legal_moves.push(curr_loc)
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // up to the left
+                let mut curr_loc = coord;
+                loop {
+                    if curr_loc.y == 0 || curr_loc.x == 0 {
+                        break;
+                    } else {
+                        curr_loc.y += 1;
+                        curr_loc.x -= 1;
+                        let curr_tile = self.board.get_tile(curr_loc);
+                        match self.board.get_tile(curr_loc).piece {
+                            None => {}
+                            Some(_piece) => {
+                                if &curr_tile.color.unwrap() != color {
+                                    legal_moves.push(curr_loc)
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // down to the right
+                let mut curr_loc = coord;
+                loop {
+                    if curr_loc.y == 0 || curr_loc.x == 0 {
+                        break;
+                    } else {
+                        curr_loc.y -= 1;
+                        curr_loc.x += 1;
+                        let curr_tile = self.board.get_tile(curr_loc);
+                        match self.board.get_tile(curr_loc).piece {
+                            None => {}
+                            Some(_piece) => {
+                                if &curr_tile.color.unwrap() != color {
+                                    legal_moves.push(curr_loc)
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // up to the right
+                let mut curr_loc = coord;
+                while curr_loc.x < 8 && curr.loc.y < 8 {
+                    // TODO: finish this!
+                    curr_loc.x += 1;
+                    curr_loc.y += 1;
+                }
+
+                // Check up direction
+                for i in (curr_loc.y + 1)..8 {
+                    curr_loc = Coord {
+                        x: curr_loc.x,
+                        y: i,
                     };
                     let curr_tile = self.board.get_tile(curr_loc);
                     match self.board.get_tile(curr_loc).piece {
