@@ -62,15 +62,21 @@ impl fmt::Display for Tile {
 
 impl Default for Tile {
     fn default() -> Self {
-        Tile::init(None, None)
+        Tile::init(None, None).unwrap()
     }
 }
 
 impl Tile {
-    fn init(color: Option<Color>, piece: Option<Piece>) -> Tile {
-        Tile {
-            color: color,
-            piece: piece,
+    fn init(color: Option<Color>, piece: Option<Piece>) -> Result<Tile, String> {
+        if (color.is_none() && piece.is_none()) || (!color.is_none() && !piece.is_none()) {
+            return Ok(Tile {
+                color: color,
+                piece: piece,
+            });
+        } else {
+            return Err(
+                "Either provided a color for empty tile, or piece without a color".to_string(),
+            );
         }
     }
 
@@ -87,10 +93,7 @@ impl Tile {
 
         // Handle empty squares first
         if first_char == '-' {
-            return Ok(Tile {
-                color: None,
-                piece: None,
-            });
+            return Tile::init(None, None);
         }
 
         // Check if longer string is correctly formatted
@@ -117,10 +120,7 @@ impl Tile {
             _ => return Err(String::from("did not enter a valid color")),
         };
 
-        Ok(Tile {
-            color: Some(color),
-            piece: Some(piece),
-        })
+        Tile::init(Some(color), Some(piece))
     }
 }
 
@@ -173,14 +173,30 @@ impl Board {
         Ok(board)
     }
 
-    fn get_tile(&self, coord: Coord) -> &Tile {
-        return &self.grid[7 as usize - coord.y][coord.x];
+    fn get_tile(&self, coord: Coord) -> Option<&Tile> {
+        let converted_y_coord = 7 as usize - coord.y;
+        if (0..8).contains(&converted_y_coord) && (0..8).contains(&coord.x) {
+            return Some(&self.grid[converted_y_coord][coord.x]);
+        } else {
+            return None;
+        }
     }
 
-    fn set_tile(&mut self, coord: Coord, piece: Option<Piece>, color: Option<Color>) {
-        self.grid[7 as usize - coord.y][coord.x] = Tile {
-            piece: piece,
-            color: color,
+    fn set_tile(
+        &mut self,
+        coord: Coord,
+        piece: Option<Piece>,
+        color: Option<Color>,
+    ) -> Result<(), String> {
+        let converted_y_coord = 7 as usize - coord.y;
+        if (0..8).contains(&converted_y_coord) && (0..8).contains(&coord.x) {
+            self.grid[converted_y_coord][coord.x] = Tile {
+                piece: piece,
+                color: color,
+            };
+            return Ok(());
+        } else {
+            return Err("setting tile with invalid coords".to_string());
         }
     }
 }
@@ -258,7 +274,10 @@ impl GameState {
             return Err("Illegal move; enter a legal move.".to_string());
         }
         let board = &mut self.board;
-        let tile = board.get_tile(first_coord);
+        let tile = match board.get_tile(first_coord) {
+            None => return Err(String::from("Tile does not exist at provided location")),
+            Some(tile) => tile,
+        };
         let piece = tile.piece.as_ref().unwrap();
         let color = tile.color.as_ref().unwrap();
 
@@ -267,12 +286,15 @@ impl GameState {
         Ok(())
     }
 
-    fn get_legal_moves(&self, coord: Coord) -> Vec<Coord> {
+    fn get_legal_moves(&self, coord: Coord) -> Result<Vec<Coord>, String> {
         // Given a coord, return vector of legal moves based on piece located at that coord.
-        let tile = self.board.get_tile(coord);
+        let tile = match self.board.get_tile(coord) {
+            None => return Err(String::from("Tile does not exist at provided location")),
+            Some(tile) => tile,
+        };
 
         let piece = match &tile.piece {
-            None => return vec![],
+            None => return Ok(vec![]),
             Some(piece) => piece,
         };
 
@@ -290,8 +312,8 @@ impl GameState {
                         x: curr_loc.x,
                         y: i,
                     };
-                    let curr_tile = self.board.get_tile(curr_loc);
-                    match self.board.get_tile(curr_loc).piece {
+                    let curr_tile = self.board.get_tile(curr_loc).unwrap();
+                    match self.board.get_tile(curr_loc).unwrap().piece {
                         None => {
                             legal_moves.push(curr_loc);
                         }
@@ -313,8 +335,8 @@ impl GameState {
                             x: curr_loc.x,
                             y: i,
                         };
-                        let curr_tile = self.board.get_tile(curr_loc);
-                        match self.board.get_tile(curr_loc).piece {
+                        let curr_tile = self.board.get_tile(curr_loc).unwrap();
+                        match self.board.get_tile(curr_loc).unwrap().piece {
                             None => {
                                 legal_moves.push(curr_loc);
                             }
@@ -337,8 +359,8 @@ impl GameState {
                             x: j,
                             y: curr_loc.y,
                         };
-                        let curr_tile = self.board.get_tile(curr_loc);
-                        match self.board.get_tile(curr_loc).piece {
+                        let curr_tile = self.board.get_tile(curr_loc).unwrap();
+                        match self.board.get_tile(curr_loc).unwrap().piece {
                             None => {
                                 legal_moves.push(curr_loc);
                             }
@@ -360,8 +382,8 @@ impl GameState {
                         x: j,
                         y: curr_loc.y,
                     };
-                    let curr_tile = self.board.get_tile(curr_loc);
-                    match self.board.get_tile(curr_loc).piece {
+                    let curr_tile = self.board.get_tile(curr_loc).unwrap();
+                    match self.board.get_tile(curr_loc).unwrap().piece {
                         None => {
                             legal_moves.push(curr_loc);
                         }
@@ -384,9 +406,11 @@ impl GameState {
                     } else {
                         curr_loc.y -= 1;
                         curr_loc.x -= 1;
-                        let curr_tile = self.board.get_tile(curr_loc);
-                        match self.board.get_tile(curr_loc).piece {
-                            None => {}
+                        let curr_tile = self.board.get_tile(curr_loc).unwrap();
+                        match self.board.get_tile(curr_loc).unwrap().piece {
+                            None => {
+                                legal_moves.push(curr_loc)
+                            }
                             Some(_piece) => {
                                 if &curr_tile.color.unwrap() != color {
                                     legal_moves.push(curr_loc)
@@ -405,9 +429,11 @@ impl GameState {
                     } else {
                         curr_loc.y += 1;
                         curr_loc.x -= 1;
-                        let curr_tile = self.board.get_tile(curr_loc);
+                        let curr_tile = self.board.get_tile(curr_loc).unwrap();
                         match self.board.get_tile(curr_loc).piece {
-                            None => {}
+                            None => {
+                                legal_moves.push(curr_loc)
+                            }
                             Some(_piece) => {
                                 if &curr_tile.color.unwrap() != color {
                                     legal_moves.push(curr_loc)
@@ -441,7 +467,7 @@ impl GameState {
 
                 // up to the right
                 let mut curr_loc = coord;
-                while curr_loc.x < 8 && curr.loc.y < 8 {
+                while curr_loc.x < 8 && curr_loc.y < 8 {
                     // TODO: finish this!
                     curr_loc.x += 1;
                     curr_loc.y += 1;
